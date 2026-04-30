@@ -165,6 +165,16 @@ tbody tr:hover td{background:var(--gds);}
 .cbb{background:#1a1a2a;color:#b0b0e0;}
 .cct{background:#2a1a1a;color:#e8a070;}
 .cx{background:var(--sf3);color:var(--txs);}
+.cbal{background:#1a1a2e;color:#e0c4ff;}
+.cbvl{background:#2a1a1a;color:#f0c0a0;}
+.cvw{background:#1e1e2e;color:#c8b4e0;}
+.clw{background:#1a2a1a;color:#a0d4a0;}
+.cvrs{background:#2a1a2a;color:#e0a0e0;}
+.cbbr{background:#2a1e14;color:#d4a870;}
+.cgvn{background:#141e2a;color:#80b0e0;}
+.cvlt{background:#2a1a1e;color:#e08090;}
+.ccch{background:#1e1a14;color:#c0a060;}
+.cmcm{background:#141414;color:#d0d0d0;}
 
 /* ===== STALE ===== */
 .stale td{background:rgba(192,128,80,.04)!important;}
@@ -426,12 +436,39 @@ tbody tr:hover td{background:var(--gds);}
     <div class="fm"><label>อุปกรณ์</label>
       <select id="b-acc">
         <option>Full Set + Receipt</option><option>Full Set (No Rec.)</option>
-        <option>Full Set + Rec (Copy)</option><option>No Set</option><option>อื่นๆ</option>
+        <option>Full Set + Rec (Copy)</option>
+        <option>กล่อง</option>
+        <option>ถุงผ้า</option>
+        <option>การ์ด</option>
+        <option>ถุงกระดาษ</option>
+        <option>บุ๊ค</option>
+        <option>สติ๊กเกอร์</option>
+        <option>กล่อง+ถุงผ้า</option>
+        <option>กล่อง+ถุงผ้า+บุ๊ค</option>
+        <option>กล่อง+ถุงผ้า+บุ๊ค+การ์ด</option>
+        <option>กล่อง+ผ้าเช็ด</option>
+        <option>กล่อง+ถุงผ้า+บุ๊ค+ถุงกระดาษ</option>
+        <option>ถุงผ้า+การ์ด</option>
+        <option>กล่อง+ถุงผ้า+การ์ด</option>
+        <option>No Set</option><option>อื่นๆ</option>
       </select>
     </div>
     <div class="fm"><label>ราคาทุน (฿) *</label><input type="number" id="b-cost" placeholder="0"></div>
     <div class="fm"><label>ราคาขาย (฿) *</label><input type="number" id="b-price" placeholder="0"></div>
-    <div class="fm full"><label>ลิงก์รูปสินค้า</label><input type="text" id="b-img" placeholder="https://..."></div>
+    <div class="fm full">
+      <label>รูปสินค้า</label>
+      <div id="img-preview-wrap" style="margin-bottom:8px;display:none">
+        <img id="img-preview" style="max-height:140px;border-radius:8px;border:1px solid var(--bdl);object-fit:cover;max-width:100%">
+        <button type="button" onclick="clearImg()" style="display:block;margin-top:6px;background:none;border:none;color:var(--red);font-size:12px;cursor:pointer;padding:0">✕ ลบรูป</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label for="b-img-file" style="padding:8px 14px;background:var(--sf2);border:1px solid var(--bdl);border-radius:8px;cursor:pointer;font-size:13px;color:var(--txs);white-space:nowrap;text-transform:none;letter-spacing:0">
+          📷 เลือกรูป
+        </label>
+        <input type="file" id="b-img-file" accept="image/*" style="display:none" onchange="handleImgUpload(this)">
+        <input type="text" id="b-img" placeholder="หรือวางลิงก์รูป https://..." oninput="previewImgUrl(this.value)" style="flex:1">
+      </div>
+    </div>
     <div class="fm full"><label>หมายเหตุ</label><textarea id="b-note" rows="2"></textarea></div>
   </div>
   <div class="mf">
@@ -570,6 +607,17 @@ const BRAND_PREFIX = {
   'audemars piguet':'AP','richard mille':'RM',
   'omega':'OMG','iwc':'IWC','hublot':'HB',
   'tudor':'TD','seiko':'SK',
+  'balenciaga':'BAL','bvlgari':'BVL',
+  'vivienne westwood':'VW','loewe':'LW',
+  'versace':'VRS','sporty rich':'SPR',
+  'loro piana':'LP','tory burch':'TB',
+  'coach':'CCH','valentino':'VLT',
+  'rally':'RLY','boyy':'BY',
+  'jacquemus':'JQ','mardi':'MDI',
+  'polo':'PLO','polene':'PLN',
+  'burberry':'BBR','frank muller':'FM',
+  'mcm':'MCM','3.1 phillip lim':'PHL',
+  'givenchy':'GVN',
   'ybn':'YBN','อื่นๆ':'OT'
 };
 
@@ -700,7 +748,15 @@ function closeGSearch(){document.getElementById('gsearch-res').classList.remove(
 // HELPERS
 // ============================================================
 function chip(b){
-  const m={'chanel':'cc','lv':'cl','hermes':'ch2','hermès':'ch2','gucci':'cg2','dior':'cd','rolex':'crx','prada':'cp','celine':'ce','céline':'ce','bottega':'cbv','baobao':'cbb','cartier':'cct'};
+  const m={
+    'chanel':'cc','lv':'cl','hermes':'ch2','hermès':'ch2',
+    'gucci':'cg2','dior':'cd','rolex':'crx','prada':'cp',
+    'celine':'ce','céline':'ce','bottega':'cbv','baobao':'cbb',
+    'cartier':'cct','balenciaga':'cbal','bvlgari':'cbvl',
+    'vivienne westwood':'cvw','loewe':'clw','versace':'cvrs',
+    'burberry':'cbbr','givenchy':'cgvn','valentino':'cvlt',
+    'coach':'ccch','mcm':'cmcm'
+  };
   return`<span class="chip ${m[(b||'').toLowerCase()]||'cx'}">${b||'-'}</span>`;
 }
 function sBadge(s){
@@ -709,9 +765,18 @@ function sBadge(s){
   if(s==='reserved')return`<span class="badge brsv">จอง</span>`;
   return`<span class="badge">${s||'-'}</span>`;
 }
-function thumbEl(url){
-  if(!url)return`<div class="thumb">👜</div>`;
-  return`<div class="thumb"><img src="${url}" onerror="this.parentElement.innerHTML='👜'"></div>`;
+function thumbEl(url, onclick=''){
+  if(!url||url==='-')return`<div class="thumb" style="cursor:default">👜</div>`;
+  const click = onclick ? `onclick="${onclick}"` : `onclick="viewImg('${url.replace(/'/g,"\'")}')"`; 
+  return`<div class="thumb" style="cursor:pointer" ${click} title="คลิกดูรูปใหญ่"><img src="${url}" onerror="this.parentElement.innerHTML='👜'"></div>`;
+}
+
+function viewImg(url){
+  const ov = document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:20px';
+  ov.innerHTML=`<img src="${url}" style="max-width:100%;max-height:90vh;object-fit:contain;border-radius:10px;box-shadow:0 0 40px rgba(0,0,0,.5)">`;
+  ov.onclick=()=>ov.remove();
+  document.body.appendChild(ov);
 }
 
 // ============================================================
@@ -837,6 +902,7 @@ function openBuy(id){
   document.getElementById('b-src').value=i?i.source:'';
   document.getElementById('b-date').value=i?i.buyDate:today();
   document.getElementById('b-img').value=i?i.imgUrl:'';
+  if(i&&i.imgUrl){ showImgPreview(i.imgUrl); } else { clearImg(); }
   document.getElementById('b-note').value=i?i.note:'';
   document.getElementById('ov-buy').classList.add('open');
 }
@@ -1024,6 +1090,44 @@ function exportExcel(type){
 // ============================================================
 // UTILS
 // ============================================================
+
+
+// ============================================================
+// IMAGE UPLOAD & PREVIEW
+// ============================================================
+function handleImgUpload(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const dataUrl = e.target.result;
+    document.getElementById('b-img').value = dataUrl;
+    showImgPreview(dataUrl);
+  };
+  reader.readAsDataURL(file);
+}
+
+function previewImgUrl(url){
+  if(url && url.startsWith('http')){
+    showImgPreview(url);
+  } else if(!url){
+    clearImg();
+  }
+}
+
+function showImgPreview(src){
+  const wrap = document.getElementById('img-preview-wrap');
+  const img = document.getElementById('img-preview');
+  img.src = src;
+  wrap.style.display = 'block';
+}
+
+function clearImg(){
+  document.getElementById('b-img').value = '';
+  document.getElementById('b-img-file').value = '';
+  document.getElementById('img-preview-wrap').style.display = 'none';
+  document.getElementById('img-preview').src = '';
+}
 
 // ============================================================
 // MIGRATE: เพิ่ม YBN-001 ให้สินค้าที่ยังไม่มีโค้ด

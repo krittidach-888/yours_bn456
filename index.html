@@ -475,6 +475,7 @@ tbody tr:hover td{background:var(--gds);}
         </label>
         <input type="file" id="b-img-file" accept="image/*" style="display:none" onchange="handleImgUpload(this)">
         <input type="text" id="b-img" placeholder="หรือวางลิงก์รูป https://..." oninput="previewImgUrl(this.value)" style="flex:1">
+        <span id="img-size-label" style="font-size:11px;color:var(--grn);white-space:nowrap"></span>
       </div>
     </div>
     <div class="fm full"><label>หมายเหตุ</label><textarea id="b-note" rows="2"></textarea></div>
@@ -927,6 +928,13 @@ async function saveBuy(){
   if(!name||!cost||!price){alert('กรุณากรอกชื่อสินค้า, ราคาทุน และราคาขาย');return;}
   const btn=document.getElementById('buy-btn');btn.disabled=true;btn.textContent='⏳ กำลังบันทึก...';
   const eid=document.getElementById('buy-eid').value,ex=eid?items.find(i=>i.id===eid):null;
+  // จัดการรูปภาพ — บีบอัดถ้าใหญ่เกิน ถ้ายังใหญ่อยู่ให้ตัดออก
+  const rawImg = document.getElementById('b-img').value||'';
+  let safeImg = rawImg;
+  if(rawImg.startsWith('data:') && rawImg.length > 100000){
+    safeImg = '';
+    alert('รูปบีบอัดแล้วยังใหญ่เกินไปครับ\nลองถ่ายรูปใหม่หรือเลือกรูปที่มีขนาดเล็กกว่านี้\n\nระบบจะบันทึกข้อมูลโดยไม่มีรูปก่อนครับ');
+  }
   const d={
     id:eid||uid(),
     itemCode:ex?ex.itemCode:document.getElementById('code-preview').textContent,
@@ -936,7 +944,7 @@ async function saveBuy(){
     year:document.getElementById('b-year').value,serial:document.getElementById('b-serial').value,
     color:document.getElementById('b-color').value,accessories:document.getElementById('b-acc').value,
     cost,price,source:document.getElementById('b-src').value,
-    buyDate:document.getElementById('b-date').value,imgUrl:document.getElementById('b-img').value,
+    buyDate:document.getElementById('b-date').value,imgUrl:safeImg,
     note:document.getElementById('b-note').value,
     status:ex?ex.status:'available',
     reservedBy:ex?ex.reservedBy:'',
@@ -1108,9 +1116,26 @@ function handleImgUpload(input){
   if(!file) return;
   const reader = new FileReader();
   reader.onload = function(e){
-    const dataUrl = e.target.result;
-    document.getElementById('b-img').value = dataUrl;
-    showImgPreview(dataUrl);
+    const img = new Image();
+    img.onload = function(){
+      const canvas = document.createElement("canvas");
+      // ลดขนาดเหลือ 400px พอให้เห็นว่าเป็นรูปอะไร
+      const MAX = 400;
+      let w = img.width, h = img.height;
+      if(w > h){ if(w > MAX){ h = Math.round(h*MAX/w); w = MAX; } }
+      else      { if(h > MAX){ w = Math.round(w*MAX/h); h = MAX; } }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      // บีบอัดคุณภาพ 50% — ขนาดสุดท้ายประมาณ 10-30KB
+      const compressed = canvas.toDataURL("image/jpeg", 0.5);
+      document.getElementById("b-img").value = compressed;
+      showImgPreview(compressed);
+      // แสดงขนาดไฟล์ให้รู้ว่าเล็กพอ
+      const kb = Math.round(compressed.length * 0.75 / 1024);
+      const label = document.getElementById("img-size-label");
+      if(label) label.textContent = kb + " KB";
+    };
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
@@ -1135,6 +1160,8 @@ function clearImg(){
   document.getElementById('b-img-file').value = '';
   document.getElementById('img-preview-wrap').style.display = 'none';
   document.getElementById('img-preview').src = '';
+  const lbl = document.getElementById('img-size-label');
+  if(lbl) lbl.textContent = '';
 }
 
 // ============================================================

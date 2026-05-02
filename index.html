@@ -672,7 +672,19 @@ function startApp(){document.getElementById('setup').style.display='none';docume
 // API
 // ============================================================
 async function callAPI(base,action,type,extra){
-  let url=`${base}?action=${action}`;if(type)url+=`&type=${type}`;if(extra)url+=`&${extra}`;
+  let url=`${base}?action=${action}`;
+  if(type) url+=`&type=${type}`;
+  // ถ้า extra ยาวเกิน 5000 ตัวอักษร ให้ใช้ POST แทน GET
+  if(extra && extra.length > 5000){
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body: extra
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    return res.json();
+  }
+  if(extra) url+=`&${extra}`;
   const res=await fetch(url);if(!res.ok)throw new Error('HTTP '+res.status);return res.json();
 }
 function b64(obj){

@@ -202,7 +202,7 @@ tbody tr:hover td{background:var(--gds);}
 .ptab.active{background:var(--gd);color:#0c0c0a;border-color:var(--gd);font-weight:600;}
 
 /* ===== MOM COMPARISON ===== */
-.mom-card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;}
+.mom-card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:20px 22px;margin-bottom:20px;}
 .mom-item{flex:1;min-width:140px;}
 .mom-label{font-size:11px;color:var(--txm);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
 .mom-val{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--gd);}
@@ -220,6 +220,24 @@ tbody tr:hover td{background:var(--gds);}
 .mom-progress-fill.behind{background:linear-gradient(90deg,#c08050,#d89968);}
 .mom-progress-pace{position:absolute;top:-3px;width:2px;height:16px;background:var(--tx);opacity:.45;}
 .mom-progress-sub{font-size:11px;color:var(--txm);margin-top:7px;}
+
+/* ===== MOM HERO (Progress Bar เป็นจุดเด่นหลัก) ===== */
+.mom-hero-label{font-size:11px;color:var(--txm);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
+.mom-hero-target{font-family:'Cormorant Garamond',serif;font-size:32px;color:var(--gd);margin-bottom:14px;line-height:1;}
+.mom-progress-bar-lg{position:relative;height:18px;background:var(--sf2);border-radius:10px;overflow:visible;margin-bottom:12px;}
+.mom-progress-fill-lg{height:100%;border-radius:10px;transition:width .5s ease;}
+.mom-progress-fill-lg.on-track{background:linear-gradient(90deg,#3d9960,#52c07a);}
+.mom-progress-fill-lg.behind{background:linear-gradient(90deg,#c08050,#d89968);}
+.mom-progress-pace-lg{position:absolute;top:-4px;width:3px;height:26px;background:var(--tx);opacity:.55;border-radius:2px;}
+.mom-hero-status{font-size:15px;font-weight:600;padding:11px 16px;border-radius:10px;margin-bottom:4px;}
+.mom-hero-status.ahead{background:rgba(82,192,122,.13);color:var(--grn);}
+.mom-hero-status.close{background:rgba(192,128,80,.13);color:var(--org);}
+.mom-hero-status.behind{background:rgba(224,82,82,.13);color:var(--red);}
+.mom-secondary{width:100%;margin-top:16px;padding-top:14px;border-top:1px solid var(--bd);font-size:12px;color:var(--txs);display:flex;gap:18px;flex-wrap:wrap;align-items:center;}
+.mom-secondary b{color:var(--tx);font-weight:500;}
+.mom-secondary .mom-up{font-weight:600;}
+.mom-secondary .mom-warn{font-weight:600;}
+.mom-secondary .mom-down{font-weight:600;}
 
 /* ===== RANKING TABLES ===== */
 .rank-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
@@ -1063,62 +1081,77 @@ function getAvgMonthlyProfit(numMonths){
   };
 }
 
-function momRow(label, cur, prev, isMoney){
-  let deltaHtml = '<span style="color:var(--txm);font-size:12px">ไม่มีข้อมูลเทียบ</span>';
-  if(prev !== 0){
-    const pct = ((cur-prev)/Math.abs(prev))*100;
-    if(pct >= 0){
-      deltaHtml = `<span class="mom-delta mom-up">▲ ${pct.toFixed(1)}%</span>`;
-    } else if(pct >= -20){
-      deltaHtml = `<span class="mom-delta mom-warn">▼ ${Math.abs(pct).toFixed(1)}% (ใกล้เคียง)</span>`;
-    } else {
-      deltaHtml = `<span class="mom-delta mom-down">▼ ${Math.abs(pct).toFixed(1)}%</span>`;
-    }
-  } else if(cur > 0) {
-    deltaHtml = `<span class="mom-delta mom-up">▲ ใหม่</span>`;
-  }
-  const valStr = isMoney ? '฿'+fmt(cur) : fmt(cur);
-  return `<div class="mom-item"><div class="mom-label">${label}</div><div class="mom-val">${valStr}</div>${deltaHtml}</div>`;
-}
 
 function renderMoM(){
   const now = new Date();
   const today = now.getDate();
   const thisMonthLabel = `${now.getMonth()+1}/${now.getFullYear()}`;
 
-  // เทียบแบบจำนวนวันเท่ากัน (แฟร์กว่าการเทียบทั้งเดือน)
   const thisM = getMonthStatsToDate(0, today);
   const lastM = getMonthStatsToDate(1, today);
   const lastMFull = getMonthFullStats(1);
   const avg = getAvgMonthlyProfit(6); // เฉลี่ยจากเดือนที่มีข้อมูลจริง ย้อนหลังสูงสุด 6 เดือน
 
-  let html = `<div style="font-size:12px;color:var(--txm);width:100%;margin-bottom:2px">📅 เทียบ ${today} วันแรกของเดือนนี้ (${thisMonthLabel}) กับ ${today} วันแรกของเดือนก่อน (${lastMFull.label})</div>`;
-  html += momRow('ยอดขาย', thisM.revenue, lastM.revenue, true);
-  if(isOwner()) html += momRow('กำไร', thisM.profit, lastM.profit, true);
-  html += momRow('จำนวนรายการ', thisM.count, lastM.count, false);
-
-  // Progress bar เทียบเป้าหมาย = ค่าเฉลี่ยย้อนหลัง (มั่นคงกว่าเทียบแค่เดือนก่อนเดือนเดียว)
   const owner = isOwner();
   const target = owner ? avg.avgProfit : avg.avgRevenue;
   const currentVal = owner ? thisM.profit : thisM.revenue;
+  const metricLabel = owner ? 'กำไร' : 'ยอดขาย';
+
+  let html = '';
+
   if(target > 0 && avg.monthsWithData > 0 && lastMFull.daysInMonth > 0){
     const progressPct = Math.min(100, (currentVal/target)*100);
     const pacePct = Math.min(100, (today/lastMFull.daysInMonth)*100);
-    const onTrack = currentVal >= (target * (today/lastMFull.daysInMonth)) * 0.9;
-    html += `<div class="mom-progress-wrap">
-      <div class="mom-progress-label">
-        <span>🎯 เป้าหมายเดือนนี้ (เฉลี่ย ${avg.monthsWithData} เดือนล่าสุด)</span>
-        <span style="color:var(--gd);font-weight:600">฿${fmt(target)}</span>
+    const expectedByToday = target * (today/lastMFull.daysInMonth);
+    const gapAmount = expectedByToday - currentVal;
+    const gapRatio = expectedByToday>0 ? (currentVal/expectedByToday) : 1;
+
+    let statusClass, statusText;
+    if(gapAmount <= 0){
+      statusClass = 'ahead';
+      statusText = `✅ นำหน้าจังหวะอยู่ ฿${fmt(Math.abs(gapAmount))} — ทำได้ดีมาก!`;
+    } else if(gapRatio >= 0.8){
+      statusClass = 'close';
+      statusText = `⚡ ขาดอีก ฿${fmt(gapAmount)} ถึงจะทันจังหวะของวันนี้`;
+    } else {
+      statusClass = 'behind';
+      statusText = `🔥 ขาดอีก ฿${fmt(gapAmount)} ถึงจะทันจังหวะ — เร่งมือหน่อย!`;
+    }
+
+    html += `<div class="mom-hero-label">🎯 เป้าหมาย${metricLabel}เดือนนี้ (เฉลี่ย ${avg.monthsWithData} เดือนล่าสุด)</div>
+      <div class="mom-hero-target">฿${fmt(target)}</div>
+      <div class="mom-progress-bar-lg">
+        <div class="mom-progress-fill-lg ${gapAmount<=0?'on-track':'behind'}" style="width:${progressPct}%"></div>
+        <div class="mom-progress-pace-lg" style="left:${pacePct}%" title="ตำแหน่งที่ควรอยู่วันนี้ถ้าขายสม่ำเสมอเท่าค่าเฉลี่ย"></div>
       </div>
-      <div class="mom-progress-bar">
-        <div class="mom-progress-fill ${onTrack?'on-track':'behind'}" style="width:${progressPct}%"></div>
-        <div class="mom-progress-pace" style="left:${pacePct}%" title="ตำแหน่งที่ควรอยู่ถ้าขายสม่ำเสมอเท่าค่าเฉลี่ย"></div>
-      </div>
-      <div class="mom-progress-sub">ไปแล้ว ${progressPct.toFixed(1)}% ของเป้าเฉลี่ย · วันนี้เป็นวันที่ ${today} จาก ${lastMFull.daysInMonth} วัน</div>
-    </div>`;
+      <div class="mom-hero-status ${statusClass}">${statusText}</div>
+      <div class="mom-progress-sub">ทำได้แล้ว ฿${fmt(currentVal)} (${progressPct.toFixed(1)}% ของเป้า) · วันนี้เป็นวันที่ ${today} จาก ${lastMFull.daysInMonth} วัน</div>`;
+  } else {
+    html += `<div style="color:var(--txm);font-size:13px">ยังไม่มีข้อมูลเพียงพอสำหรับตั้งเป้าหมาย</div>`;
   }
 
+  // ข้อมูลเทียบเดือน — ลดความสำคัญลงเป็นแถวเล็กด้านล่าง
+  html += `<div class="mom-secondary">
+    <span>📅 เทียบ ${today} วันแรกกับเดือนก่อน (${lastMFull.label}):</span>
+    ${momInline('ยอดขาย', thisM.revenue, lastM.revenue)}
+    ${owner ? momInline('กำไร', thisM.profit, lastM.profit) : ''}
+    ${momInline('รายการ', thisM.count, lastM.count, false)}
+  </div>`;
+
   document.getElementById('mom-card').innerHTML = html;
+}
+
+function momInline(label, cur, prev, isMoney=true){
+  let deltaHtml = '<span style="color:var(--txm)">ไม่มีข้อมูลเทียบ</span>';
+  if(prev !== 0){
+    const pct = ((cur-prev)/Math.abs(prev))*100;
+    if(pct >= 0) deltaHtml = `<span class="mom-up">▲${pct.toFixed(1)}%</span>`;
+    else if(pct >= -20) deltaHtml = `<span class="mom-warn">▼${Math.abs(pct).toFixed(1)}%</span>`;
+    else deltaHtml = `<span class="mom-down">▼${Math.abs(pct).toFixed(1)}%</span>`;
+  } else if(cur > 0){
+    deltaHtml = `<span class="mom-up">▲ใหม่</span>`;
+  }
+  return `<span><b>${label}</b> ${deltaHtml}</span>`;
 }
 
 function renderRankings(periodSells){

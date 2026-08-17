@@ -592,7 +592,8 @@ body.staff-mode .owner-only{display:none!important;}
 
 <!-- MODAL: SELL -->
 <div class="ov" id="ov-sell"><div class="modal">
-  <div class="mt2">บันทึกขายออก</div>
+  <div class="mt2" id="sell-ttl">บันทึกขายออก</div>
+  <input type="hidden" id="sl-eid">
   <div class="fg">
     <div class="fm full"><label>เลือกสินค้า *</label><select id="sl-item"><option value="">-- เลือกสินค้า --</option></select></div>
     <div class="fm"><label>ราคาขาย (฿) *</label><input type="number" id="sl-price" placeholder="0"></div>
@@ -1679,21 +1680,61 @@ async function saveReserve(){
 // ============================================================
 // SELL
 // ============================================================
-function openSell(){
+function openSell(id){
+  const editing = !!id;
+  const existingSell = editing ? sells.find(s=>s.id===id) : null;
   const av=items.filter(i=>i.status==='available'||i.status==='reserved');
+  // ถ้าแก้ไข ให้เพิ่มสินค้าที่ขายไปแล้ว (ถูกล็อกไว้) เข้า dropdown ด้วย
+  let itemOptions = av;
+  if(editing && existingSell){
+    const soldItem = items.find(i=>i.id===existingSell.itemId);
+    if(soldItem && !itemOptions.find(i=>i.id===soldItem.id)) itemOptions = [soldItem, ...itemOptions];
+  }
   document.getElementById('sl-item').innerHTML='<option value="">-- เลือกสินค้า --</option>'+
-    av.map(i=>`<option value="${i.id}">${i.itemCode?i.itemCode+' · ':''} ${i.brand} — ${i.name} (฿${fmt(i.price)})${i.status==='reserved'?' 📌':''}</option>`).join('');
+    itemOptions.map(i=>`<option value="${i.id}">${i.itemCode?i.itemCode+' · ':''} ${i.brand} — ${i.name} (฿${fmt(i.price)})${i.status==='reserved'?' 📌':''}</option>`).join('');
   document.getElementById('sl-cust').innerHTML='<option value="">-- ไม่ระบุ --</option>'+custs.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-  document.getElementById('sl-item').onchange=function(){const it=items.find(i=>i.id===this.value);if(it){document.getElementById('sl-price').value=it.price;document.getElementById('sl-cost').value=it.cost;}};
-  document.getElementById('sl-date').value=today();document.getElementById('sl-paid').value=today();
-  ['sl-price','sl-cost','sl-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sl-item').onchange=function(){const it=items.find(i=>i.id===this.value);if(it && !editing){document.getElementById('sl-price').value=it.price;document.getElementById('sl-cost').value=it.cost;}};
+  document.getElementById('sl-eid').value = id || '';
+  document.getElementById('sell-ttl').textContent = editing ? 'แก้ไขรายการขาย' : 'บันทึกขายออก';
+  document.getElementById('sl-item').disabled = editing;
+  if(editing && existingSell){
+    document.getElementById('sl-item').value = existingSell.itemId || '';
+    document.getElementById('sl-price').value = existingSell.price || '';
+    document.getElementById('sl-cost').value = existingSell.cost || '';
+    document.getElementById('sl-ch').value = existingSell.channel || 'Luxsy';
+    document.getElementById('sl-cust').value = existingSell.customerId || '';
+    document.getElementById('sl-date').value = existingSell.sellDate || today();
+    document.getElementById('sl-paid').value = existingSell.paidDate || '';
+    document.getElementById('sl-note').value = existingSell.note || '';
+  } else {
+    document.getElementById('sl-date').value=today();document.getElementById('sl-paid').value=today();
+    ['sl-price','sl-cost','sl-note'].forEach(fid=>document.getElementById(fid).value='');
+  }
   document.getElementById('ov-sell').classList.add('open');
 }
 async function saveSell(){
+  const eid = document.getElementById('sl-eid').value;
   const itemId=document.getElementById('sl-item').value,price=document.getElementById('sl-price').value;
   if(!itemId||!price){alert('กรุณาเลือกสินค้าและกรอกราคาขาย');return;}
   const btn=document.getElementById('sell-btn');btn.disabled=true;btn.textContent='⏳ กำลังบันทึก...';
   const it=items.find(i=>i.id===itemId),custId=document.getElementById('sl-cust').value,cu=custs.find(c=>c.id===custId);
+
+  if(eid){
+    // ===== แก้ไขรายการขายที่มีอยู่แล้ว =====
+    const ex = sells.find(s=>s.id===eid);
+    const s={...ex,price:Number(price),cost:Number(document.getElementById('sl-cost').value||0),channel:document.getElementById('sl-ch').value,customerId:custId,customerName:cu?cu.name:'',sellDate:document.getElementById('sl-date').value,paidDate:document.getElementById('sl-paid').value,note:document.getElementById('sl-note').value};
+    try{
+      const res = await sb.from('sells').update(sellToDb(s)).eq('id',eid);
+      if(res.error) throw res.error;
+      const idx=sells.findIndex(x=>x.id===eid);if(idx!==-1)sells[idx]=s;
+      logActivity('update','sells',eid, `แก้ไข ${s.itemCode} ${s.itemName}`);
+      closeOv('sell');renderCurrent();if(cur==='db')renderDB();
+    }catch(e){alert('บันทึกไม่สำเร็จ: '+e.message);}
+    btn.disabled=false;btn.textContent='💾 บันทึก';
+    return;
+  }
+
+  // ===== บันทึกขายใหม่ =====
   const s={id:uid(),itemId,itemCode:it?it.itemCode:'',itemName:it?it.name:'',itemBrand:it?it.brand:'',price:Number(price),cost:it?Number(it.cost):0,channel:document.getElementById('sl-ch').value,customerId:custId,customerName:cu?cu.name:'',sellDate:document.getElementById('sl-date').value,paidDate:document.getElementById('sl-paid').value,note:document.getElementById('sl-note').value};
   try{
     const res1 = await sb.from('sells').insert([sellToDb(s)]);
@@ -1723,7 +1764,7 @@ function renderSell(){
     <td>${sl.customerName||'-'}</td><td>฿${fmt(sl.price)}</td><td class="cost-only">฿${fmt(sl.cost)}</td>
     <td class="cost-only ${p>=0?'sg':'sr'}">฿${fmt(p)}</td>
     <td style="font-size:12px;color:var(--txm)">${sl.paidDate||'-'}</td>
-    <td><button class="bd2" onclick="delSell('${sl.id}')">ลบ</button></td>
+    <td><div class="tda"><button class="be2" onclick="openSell('${sl.id}')">แก้ไข</button><button class="bd2" onclick="delSell('${sl.id}')">ลบ</button></div></td>
   </tr>`;}).join('')}</tbody></table>`;
 }
 async function delSell(id){

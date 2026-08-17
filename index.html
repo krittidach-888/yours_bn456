@@ -148,6 +148,8 @@ tbody tr:hover td{background:var(--gds);}
 .bs{background:rgba(201,168,76,.15);color:var(--gd);}
 .br2{background:rgba(82,148,192,.15);color:var(--blu);}
 .bw{background:rgba(192,128,80,.18);color:var(--org);}
+.bwarn{background:rgba(216,110,40,.24);color:#e0985a;}
+.burgent{background:rgba(224,82,82,.2);color:var(--red);}
 .brsv{background:rgba(155,114,207,.15);color:#9b72cf;}
 
 /* ===== BRAND CHIPS ===== */
@@ -177,6 +179,8 @@ tbody tr:hover td{background:var(--gds);}
 
 /* ===== STALE ===== */
 .stale td{background:rgba(192,128,80,.04)!important;}
+.stale-warn td{background:rgba(216,110,40,.08)!important;}
+.stale-urgent td{background:rgba(224,82,82,.08)!important;}
 .sdoti{display:inline-block;width:6px;height:6px;background:var(--org);border-radius:50%;margin-right:5px;vertical-align:middle;}
 
 /* ===== EMPTY ===== */
@@ -403,8 +407,18 @@ body.staff-mode .owner-only{display:none!important;}
 
   <div class="chgrid" id="db-ch"></div>
   <div class="tc">
-    <div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:14px;color:var(--txs)">⚠️ สินค้าค้างสต็อก &gt;60 วัน</span>
+    <div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <span style="font-size:14px;color:var(--txs)">⚠️ สินค้าค้างสต็อก</span>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="stale-threshold" onchange="renderDB()" style="width:130px;font-size:12px;padding:6px 10px">
+          <option value="30">ค้างเกิน 30 วัน</option>
+          <option value="60" selected>ค้างเกิน 60 วัน</option>
+          <option value="90">ค้างเกิน 90 วัน</option>
+          <option value="120">ค้างเกิน 120 วัน</option>
+        </select>
+        <button class="btn bgh" style="font-size:12px;padding:6px 11px" onclick="exportStaleExcel()">📤 Export</button>
+        <button class="btn bgh" style="font-size:12px;padding:6px 11px" onclick="printStaleList()">🖨️ พิมพ์</button>
+      </div>
     </div>
     <div id="db-st"></div>
   </div>
@@ -1227,10 +1241,100 @@ function renderDB(){
     const sub = ownerCh ? `${cs.length} ชิ้น · ยอด ฿${fmt(r)}` : `${cs.length} ชิ้น`;
     return`<div class="chc"><div class="chn">${ch}</div><div class="chp">${headline}</div><div class="chct">${sub}</div></div>`;
   }).filter(Boolean).join('')||'<div style="color:var(--txm);font-size:13px">ยังไม่มีข้อมูลการขายในช่วงนี้</div>';
-  const stale=av.filter(i=>daysAgo(i.buyDate)>60).sort((a,b)=>daysAgo(b.buyDate)-daysAgo(a.buyDate));
+  const staleThreshold = Number(document.getElementById('stale-threshold')?.value || 60);
+  const stale=av.filter(i=>daysAgo(i.buyDate)>=staleThreshold).sort((a,b)=>daysAgo(b.buyDate)-daysAgo(a.buyDate));
   document.getElementById('db-st').innerHTML=stale.length
-    ?`<div class="ts"><table><thead><tr><th>โค้ด</th><th>Brand</th><th>ชื่อสินค้า</th><th class="cost-only">ราคาทุน</th><th>ราคาขาย</th><th>ค้างมา</th></tr></thead><tbody>${stale.map(i=>`<tr class="stale"><td style="font-family:monospace;font-size:12px;color:var(--gd)">${i.itemCode||'-'}</td><td>${chip(i.brand)}</td><td><span class="sdoti"></span>${i.name}</td><td class="cost-only">฿${fmt(i.cost)}</td><td>฿${fmt(i.price)}</td><td><span class="badge bw">${daysAgo(i.buyDate)} วัน</span></td></tr>`).join('')}</tbody></table></div>`
-    :'<div class="empty"><div class="ei">✅</div><p>ไม่มีสินค้าค้างนาน</p></div>';
+    ?`<div class="ts"><table><thead><tr><th>โค้ด</th><th>Brand</th><th>ชื่อสินค้า</th><th class="cost-only">ราคาทุน</th><th>ราคาขาย</th><th>ค้างมา</th><th></th></tr></thead><tbody>${stale.map(i=>{
+      const days = daysAgo(i.buyDate);
+      const sev = staleSeverity(days);
+      return `<tr class="${sev.rowCls}">
+        <td style="font-family:monospace;font-size:12px;color:var(--gd)">${i.itemCode||'-'}</td>
+        <td>${chip(i.brand)}</td>
+        <td><span class="sdoti"></span>${i.name}</td>
+        <td class="cost-only">฿${fmt(i.cost)}</td>
+        <td>฿${fmt(i.price)}</td>
+        <td><span class="badge ${sev.badgeCls}" title="${sev.label}">${days} วัน</span></td>
+        <td><div class="tda">
+          <button class="btn" style="font-size:11px;padding:3px 8px;background:rgba(155,114,207,.15);color:#9b72cf;border:none" onclick="openReserve('${i.id}')">📌จอง</button>
+          <button class="be2" onclick="openBuy('${i.id}')">💰แก้ไข</button>
+        </div></td>
+      </tr>`;
+    }).join('')}</tbody></table></div>`
+    :'<div class="empty"><div class="ei">✅</div><p>ไม่มีสินค้าค้างเกิน '+staleThreshold+' วัน</p></div>';
+}
+
+// ============================================================
+// STALE STOCK — ระดับความค้าง (Severity)
+// ============================================================
+function staleSeverity(days){
+  if(days >= 180) return {rowCls:'stale-urgent', badgeCls:'burgent', label:'🔴 เร่งระบายด่วน'};
+  if(days >= 90) return {rowCls:'stale-warn', badgeCls:'bwarn', label:'🟠 ควรพิจารณาลดราคา'};
+  return {rowCls:'stale', badgeCls:'bw', label:'🟡 เริ่มจับตา'};
+}
+
+function getStaleList(){
+  const staleThreshold = Number(document.getElementById('stale-threshold')?.value || 60);
+  return items.filter(i=>i.status==='available' && daysAgo(i.buyDate)>=staleThreshold)
+    .sort((a,b)=>daysAgo(b.buyDate)-daysAgo(a.buyDate));
+}
+
+function exportStaleExcel(){
+  const stale = getStaleList();
+  if(!stale.length){ alert('ไม่มีสินค้าค้างในเกณฑ์ที่เลือก'); return; }
+  const owner = isOwner();
+  const data = stale.map(i=>{
+    const days = daysAgo(i.buyDate);
+    const sev = staleSeverity(days);
+    const row = {'โค้ด':i.itemCode||'','Brand':i.brand,'ชื่อสินค้า':i.name,'สภาพ':i.condition,'สี':i.color};
+    if(owner) row['ราคาทุน']=Number(i.cost||0);
+    row['ราคาขาย']=Number(i.price||0);
+    row['วันที่ซื้อ']=i.buyDate; row['ค้างมา (วัน)']=days; row['ระดับ']=sev.label;
+    return row;
+  });
+  const ws=XLSX.utils.json_to_sheet(data);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'สินค้าค้างสต็อก');
+  XLSX.writeFile(wb, `YBN_สินค้าค้างสต็อก_${today()}.xlsx`);
+}
+
+function printStaleList(){
+  const stale = getStaleList();
+  if(!stale.length){ alert('ไม่มีสินค้าค้างในเกณฑ์ที่เลือก'); return; }
+  const owner = isOwner();
+  const threshold = document.getElementById('stale-threshold').value;
+  const rows = stale.map(i=>{
+    const days = daysAgo(i.buyDate);
+    const sev = staleSeverity(days);
+    return `<tr>
+      <td>${i.itemCode||'-'}</td><td>${i.brand||'-'}</td><td>${i.name||'-'}</td>
+      <td>${i.color||'-'}</td>
+      ${owner?`<td>${fmt(i.cost)}</td>`:''}
+      <td>${fmt(i.price)}</td><td>${i.buyDate||'-'}</td><td>${days} วัน</td><td>${sev.label}</td>
+    </tr>`;
+  }).join('');
+  const printHtml = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+    <title>รายการสินค้าค้างสต็อก - YOURS BRANDNAME</title>
+    <style>
+      body{font-family:'Sarabun',sans-serif;padding:24px;color:#111;}
+      h1{font-size:18px;margin-bottom:2px;}
+      .sub{font-size:12px;color:#666;margin-bottom:16px;}
+      table{width:100%;border-collapse:collapse;font-size:12px;}
+      th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;}
+      th{background:#f0f0f0;}
+      @media print{ body{padding:0;} }
+    </style></head><body>
+    <h1>YOURS BRANDNAME — รายการสินค้าค้างสต็อก (เกิน ${threshold} วัน)</h1>
+    <div class="sub">พิมพ์เมื่อ ${new Date().toLocaleString('th-TH')} · ทั้งหมด ${stale.length} รายการ</div>
+    <table><thead><tr>
+      <th>โค้ด</th><th>Brand</th><th>ชื่อสินค้า</th><th>สี</th>
+      ${owner?'<th>ราคาทุน</th>':''}
+      <th>ราคาขาย</th><th>วันที่ซื้อ</th><th>ค้างมา</th><th>ระดับ</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    </body></html>`;
+  const win = window.open('', '_blank');
+  win.document.write(printHtml);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>win.print(), 300);
 }
 
 function renderChart(){

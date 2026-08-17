@@ -283,6 +283,11 @@ body.staff-mode .owner-only{display:none!important;}
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .fm label{display:block;font-size:11px;color:var(--txm);margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase;}
 .fm.full{grid-column:1/-1;}
+.acc-check-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;}
+.acc-check{display:flex;align-items:center;gap:7px;background:var(--sf2);border:1px solid var(--bdl);border-radius:8px;padding:8px 11px;font-size:13px;cursor:pointer;transition:all .15s;user-select:none;}
+.acc-check:hover{border-color:var(--gd);}
+.acc-check input{width:auto;margin:0;accent-color:var(--gd);cursor:pointer;}
+.acc-check:has(input:checked){background:var(--gdm);border-color:var(--gd);color:var(--gd);}
 .mf{display:flex;gap:8px;justify-content:flex-end;margin-top:22px;}
 .code-preview{font-family:monospace;font-size:13px;color:var(--gd);background:var(--sf2);padding:4px 10px;border-radius:6px;border:1px solid var(--bdl);}
 
@@ -449,7 +454,7 @@ body.staff-mode .owner-only{display:none!important;}
       <select style="width:130px" onchange="renderSell()" id="fch">
         <option value="">ทุกช่องทาง</option>
         <option>Live Boom</option><option>Luxsy</option><option>Whosale</option>
-        <option>Openchat</option><option>IG</option><option>หน้าร้าน</option><option>ออกบูธ</option><option>อื่นๆ</option>
+        <option>Openchat</option><option>IG</option><option>หน้าร้าน</option><option>ออกบูธ</option><option>FB</option><option>Tiktok</option><option>Lemon8</option><option>อื่นๆ</option>
       </select>
     </div>
     <div style="display:flex;gap:8px">
@@ -505,7 +510,8 @@ body.staff-mode .owner-only{display:none!important;}
         <option>Polene</option><option>Burberry</option><option>Frank Muller</option>
         <option>MCM</option><option>3.1 Phillip Lim</option><option>Givenchy</option>
         <option>Patek Philippe</option><option>Audemars Piguet</option><option>Richard Mille</option>
-        <option>Omega</option><option>IWC</option><option>Hublot</option><option>Tudor</option><option>Seiko</option>
+        <option>Omega</option><option>IWC</option><option>Hublot</option><option>Tudor</option><option>Seiko</option><option>TAG Heuer</option>
+        <option>Tiffany</option>
         <option>อื่นๆ</option>
       </select>
     </div>
@@ -531,17 +537,21 @@ body.staff-mode .owner-only{display:none!important;}
     <div class="fm"><label>ปีผลิต</label><input type="text" id="b-year" placeholder="2024"></div>
     <div class="fm"><label>Serial No.</label><input type="text" id="b-serial" placeholder="Serial / Code"></div>
     <div class="fm"><label>สี</label><input type="text" id="b-color" placeholder="Black GHW"></div>
-    <div class="fm"><label>อุปกรณ์</label>
-      <select id="b-acc">
-        <option>Full Set + Receipt</option><option>Full Set (No Rec.)</option>
-        <option>Full Set + Rec (Copy)</option>
-        <option>กล่อง</option><option>ถุงผ้า</option><option>การ์ด</option><option>ถุงกระดาษ</option>
-        <option>บุ๊ค</option><option>สติ๊กเกอร์</option><option>กล่อง+ถุงผ้า</option>
-        <option>กล่อง+ถุงผ้า+บุ๊ค</option><option>กล่อง+ถุงผ้า+บุ๊ค+การ์ด</option><option>กล่อง+ผ้าเช็ด</option>
-        <option>กล่อง+ถุงผ้า+บุ๊ค+ถุงกระดาษ</option><option>ถุงผ้า+การ์ด</option><option>กล่อง+ถุงผ้า+การ์ด</option>
-        <option>No Set</option><option>อื่นๆ</option>
-      </select>
+    <div class="fm full">
+      <label>อุปกรณ์ (ติ๊กเลือกได้หลายอย่าง)</label>
+      <div class="acc-check-grid" id="acc-check-grid">
+        <label class="acc-check"><input type="checkbox" value="กล่อง"> กล่อง</label>
+        <label class="acc-check"><input type="checkbox" value="ถุงผ้า"> ถุงผ้า</label>
+        <label class="acc-check"><input type="checkbox" value="การ์ด"> การ์ด</label>
+        <label class="acc-check"><input type="checkbox" value="ถุงกระดาษ"> ถุงกระดาษ</label>
+        <label class="acc-check"><input type="checkbox" value="บุ๊ค"> บุ๊ค</label>
+        <label class="acc-check"><input type="checkbox" value="ใบเสร็จ"> ใบเสร็จ</label>
+        <label class="acc-check"><input type="checkbox" value="สติ๊กเกอร์"> สติ๊กเกอร์</label>
+        <label class="acc-check"><input type="checkbox" value="ผ้าเช็ด"> ผ้าเช็ด</label>
+      </div>
+      <input type="text" id="b-acc-other" placeholder="อื่นๆ (ถ้ามี พิมพ์เพิ่มได้)" style="margin-top:8px">
     </div>
+    <input type="hidden" id="b-acc">
     <div class="fm"><label>ราคาทุน (฿) *</label><input type="number" id="b-cost" placeholder="0"></div>
     <div class="fm"><label>ราคาขาย (฿) *</label><input type="number" id="b-price" placeholder="0"></div>
     <div class="fm full">
@@ -574,7 +584,7 @@ body.staff-mode .owner-only{display:none!important;}
     <div class="fm"><label>ราคาขาย (฿) *</label><input type="number" id="sl-price" placeholder="0"></div>
     <div class="fm"><label>ต้นทุน</label><input type="number" id="sl-cost" readonly style="opacity:.55"></div>
     <div class="fm"><label>ช่องทาง</label>
-      <select id="sl-ch"><option>Luxsy</option><option>Openchat</option><option>Whosale</option><option>Live Boom</option><option>IG</option><option>หน้าร้าน</option><option>ออกบูธ</option><option>อื่นๆ</option></select>
+      <select id="sl-ch"><option>Luxsy</option><option>Openchat</option><option>Whosale</option><option>Live Boom</option><option>IG</option><option>หน้าร้าน</option><option>ออกบูธ</option><option>FB</option><option>Tiktok</option><option>Lemon8</option><option>อื่นๆ</option></select>
     </div>
     <div class="fm"><label>ลูกค้า</label><select id="sl-cust"><option value="">-- ไม่ระบุ --</option></select></div>
     <div class="fm"><label>วันที่ขาย</label><input type="date" id="sl-date"></div>
@@ -809,7 +819,8 @@ const BRAND_PREFIX = {
   'rolex':'RLX','patek philippe':'PP',
   'audemars piguet':'AP','richard mille':'RM',
   'omega':'OMG','iwc':'IWC','hublot':'HB',
-  'tudor':'TD','seiko':'SK',
+  'tudor':'TD','seiko':'SK','tag heuer':'TAG',
+  'tiffany':'TIF',
   'balenciaga':'BAL','bvlgari':'BVL',
   'vivienne westwood':'VW','loewe':'LW',
   'versace':'VRS','sporty rich':'SPR',
@@ -978,7 +989,7 @@ function closeGSearch(){document.getElementById('gsearch-res').classList.remove(
 // HELPERS
 // ============================================================
 function chip(b){
-  const m={'chanel':'cc','lv':'cl','hermes':'ch2','hermès':'ch2','gucci':'cg2','dior':'cd','rolex':'crx','prada':'cp','celine':'ce','céline':'ce','bottega':'cbv','baobao':'cbb','cartier':'cct','balenciaga':'cbal','bvlgari':'cbvl','vivienne westwood':'cvw','loewe':'clw','versace':'cvrs','burberry':'cbbr','givenchy':'cgvn','valentino':'cvlt','coach':'ccch','mcm':'cmcm'};
+  const m={'chanel':'cc','lv':'cl','hermes':'ch2','hermès':'ch2','gucci':'cg2','dior':'cd','rolex':'crx','prada':'cp','celine':'ce','céline':'ce','bottega':'cbv','baobao':'cbb','cartier':'cct','balenciaga':'cbal','bvlgari':'cbvl','vivienne westwood':'cvw','loewe':'clw','versace':'cvrs','burberry':'cbbr','givenchy':'cgvn','valentino':'cvlt','coach':'ccch','mcm':'cmcm','tag heuer':'crx','tiffany':'clw'};
   return`<span class="chip ${m[(b||'').toLowerCase()]||'cx'}">${b||'-'}</span>`;
 }
 function sBadge(s){
@@ -1207,7 +1218,7 @@ function renderDB(){
   renderMoM();
   renderChart();
   renderRankings(periodSells);
-  const chs=['Luxsy','Openchat','Whosale','Live Boom','IG','หน้าร้าน','ออกบูธ'];
+  const chs=['Luxsy','Openchat','Whosale','Live Boom','IG','หน้าร้าน','ออกบูธ','FB','Tiktok','Lemon8'];
   const ownerCh = isOwner();
   document.getElementById('db-ch').innerHTML=chs.map(ch=>{
     const cs=periodSells.filter(s=>s.channel===ch);if(!cs.length)return'';
@@ -1422,6 +1433,43 @@ function clearImg(){
 // ============================================================
 // BUY MODAL
 // ============================================================
+// ============================================================
+// ACCESSORY CHECKBOXES — แปลงระหว่าง string เดิม กับ checkbox
+// ============================================================
+const ACC_KNOWN = ['กล่อง','ถุงผ้า','การ์ด','ถุงกระดาษ','บุ๊ค','ใบเสร็จ','สติ๊กเกอร์','ผ้าเช็ด'];
+
+function setAccessoryCheckboxes(accStr){
+  const boxes = document.querySelectorAll('#acc-check-grid input[type=checkbox]');
+  boxes.forEach(b=>b.checked=false);
+  document.getElementById('b-acc-other').value = '';
+  if(!accStr || accStr==='No Set'){ return; }
+  // แปลงรูปแบบเก่า เช่น "Full Set + Receipt" ให้ใกล้เคียงที่สุด
+  let normalized = accStr
+    .replace(/Full Set \+ Receipt/gi,'กล่อง+ถุงผ้า+ใบเสร็จ')
+    .replace(/Full Set \(No Rec\.\)/gi,'กล่อง+ถุงผ้า')
+    .replace(/Full Set \+ Rec \(Copy\)/gi,'กล่อง+ถุงผ้า+ใบเสร็จ');
+  const parts = normalized.split('+').map(p=>p.trim()).filter(Boolean);
+  const leftover = [];
+  parts.forEach(p=>{
+    const match = ACC_KNOWN.find(k=>k===p);
+    if(match){
+      const box = Array.from(boxes).find(b=>b.value===match);
+      if(box) box.checked = true;
+    } else {
+      leftover.push(p);
+    }
+  });
+  document.getElementById('b-acc-other').value = leftover.join(', ');
+}
+
+function getAccessoryString(){
+  const boxes = document.querySelectorAll('#acc-check-grid input[type=checkbox]:checked');
+  const selected = Array.from(boxes).map(b=>b.value);
+  const other = document.getElementById('b-acc-other').value.trim();
+  if(other) selected.push(other);
+  return selected.length ? selected.join('+') : 'No Set';
+}
+
 function openBuy(id){
   const i=id?items.find(x=>x.id===id):null;
   document.getElementById('buy-eid').value=id||'';
@@ -1437,7 +1485,7 @@ function openBuy(id){
   document.getElementById('b-year').value=i?i.year:'';
   document.getElementById('b-serial').value=i?i.serial:'';
   document.getElementById('b-color').value=i?i.color:'';
-  document.getElementById('b-acc').value=i?i.accessories:'Full Set + Receipt';
+  setAccessoryCheckboxes(i?i.accessories:'กล่อง+ถุงผ้า+การ์ด');
   document.getElementById('b-cost').value=i?i.cost:'';
   document.getElementById('b-price').value=i?i.price:'';
   document.getElementById('b-src').value=i?i.source:'';
@@ -1462,7 +1510,7 @@ async function saveBuy(){
     itemType:document.getElementById('b-type').value,size:document.getElementById('b-size').value,
     condition:document.getElementById('b-cond').value,percent:document.getElementById('b-pct').value,
     year:document.getElementById('b-year').value,serial:document.getElementById('b-serial').value,
-    color:document.getElementById('b-color').value,accessories:document.getElementById('b-acc').value,
+    color:document.getElementById('b-color').value,accessories:getAccessoryString(),
     cost:Number(cost),price:Number(price),source:document.getElementById('b-src').value,
     buyDate:document.getElementById('b-date').value,imgUrl:pendingImgUrl,
     note:document.getElementById('b-note').value,

@@ -378,7 +378,7 @@ body.staff-mode .owner-only{display:none!important;}
 <div id="s-db" class="sec active">
   <div class="pt"><h1>ภาพรวมร้าน</h1></div>
 
-  <div class="period-tabs" id="period-tabs">
+  <div class="period-tabs owner-only" id="period-tabs">
     <button class="ptab active" data-period="all" onclick="setPeriod('all')">ทั้งหมด</button>
     <button class="ptab" data-period="month" onclick="setPeriod('month')">เดือนนี้</button>
     <button class="ptab" data-period="quarter" onclick="setPeriod('quarter')">ไตรมาสนี้</button>
@@ -387,14 +387,14 @@ body.staff-mode .owner-only{display:none!important;}
 
   <div class="cg" id="db-c"></div>
 
-  <div class="mom-card" id="mom-card"></div>
+  <div class="mom-card owner-only" id="mom-card"></div>
 
-  <div class="chart-wrap">
+  <div class="chart-wrap owner-only">
     <div class="chart-title">ยอดขายรายเดือน (12 เดือนล่าสุด)</div>
     <div class="chart-inner"><canvas id="sales-chart"></canvas></div>
   </div>
 
-  <div class="rank-grid">
+  <div class="rank-grid owner-only">
     <div class="rank-box">
       <div class="rank-title">🏆 Brand ขายดี/กำไรมากสุด</div>
       <div id="rank-brand"></div>
@@ -405,7 +405,7 @@ body.staff-mode .owner-only{display:none!important;}
     </div>
   </div>
 
-  <div class="chgrid" id="db-ch"></div>
+  <div class="chgrid owner-only" id="db-ch"></div>
   <div class="tc">
     <div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
       <span style="font-size:14px;color:var(--txs)">⚠️ สินค้าค้างสต็อก</span>
@@ -468,7 +468,7 @@ body.staff-mode .owner-only{display:none!important;}
       <select style="width:130px" onchange="renderSell()" id="fch">
         <option value="">ทุกช่องทาง</option>
         <option>Live Boom</option><option>Luxsy</option><option>Whosale</option>
-        <option>Openchat</option><option>IG</option><option>หน้าร้าน</option><option>ออกบูธ</option><option>FB</option><option>Tiktok</option><option>Lemon8</option><option>อื่นๆ</option>
+        <option>Openchat</option><option>IG</option><option>หน้าร้าน</option><option>ออกบูธ</option><option>FB</option><option>Tiktok</option><option>Lemon8</option><option>Antier</option><option>อื่นๆ</option>
       </select>
     </div>
     <div style="display:flex;gap:8px">
@@ -599,7 +599,7 @@ body.staff-mode .owner-only{display:none!important;}
     <div class="fm"><label>ราคาขาย (฿) *</label><input type="number" id="sl-price" placeholder="0"></div>
     <div class="fm"><label>ต้นทุน</label><input type="number" id="sl-cost" readonly style="opacity:.55"></div>
     <div class="fm"><label>ช่องทาง</label>
-      <select id="sl-ch"><option>Luxsy</option><option>Openchat</option><option>Whosale</option><option>Live Boom</option><option>IG</option><option>หน้าร้าน</option><option>ออกบูธ</option><option>FB</option><option>Tiktok</option><option>Lemon8</option><option>อื่นๆ</option></select>
+      <select id="sl-ch"><option>Luxsy</option><option>Openchat</option><option>Whosale</option><option>Live Boom</option><option>IG</option><option>หน้าร้าน</option><option>ออกบูธ</option><option>FB</option><option>Tiktok</option><option>Lemon8</option><option>Antier</option><option>อื่นๆ</option></select>
     </div>
     <div class="fm"><label>ลูกค้า</label><select id="sl-cust"><option value="">-- ไม่ระบุ --</option></select></div>
     <div class="fm"><label>วันที่ขาย</label><input type="date" id="sl-date"></div>
@@ -684,7 +684,7 @@ async function doLogin(){
     if(error) throw error;
     if(data && data.length){
       const u = data[0];
-      currentUser = {id:u.id, username:u.username, displayName:u.display_name, role:u.role};
+      currentUser = {id:u.id, username:u.username, displayName:u.display_name, role:u.role, storeScope:u.store_scope||'all'};
       sessionStorage.setItem('ybn_user', JSON.stringify(currentUser));
       document.getElementById('login').style.display='none';
       startApp();
@@ -701,11 +701,20 @@ async function doLogin(){
 function doLogout(){if(!confirm('ออกจากระบบ?'))return;sessionStorage.removeItem('ybn_user');location.reload();}
 
 function isOwner(){ return currentUser && currentUser.role === 'owner'; }
+function myStoreScope(){ return currentUser ? (currentUser.storeScope||'all') : 'all'; }
+function canSeeAllStores(){ return myStoreScope()==='all'; }
+// กรองรายการขายตามขอบเขตของผู้ใช้ — ใช้ "ช่องทาง = Antier" เป็นตัวบ่งบอกร้าน Antier
+function scopedSells(list){
+  if(canSeeAllStores()) return list;
+  if(myStoreScope()==='antier') return list.filter(s => s.channel === 'Antier');
+  return list;
+}
 
 function applyRoleUI(){
   const badge = document.getElementById('user-badge');
   if(badge && currentUser){
-    badge.innerHTML = `👤 ${currentUser.displayName||currentUser.username} ${currentUser.role==='owner'?'<span style="color:var(--gd)">(เจ้าของร้าน)</span>':''}`;
+    const storeLabel = myStoreScope()==='all' ? '' : (myStoreScope()==='antier' ? 'Antier' : '');
+    badge.innerHTML = `👤 ${currentUser.displayName||currentUser.username} ${currentUser.role==='owner'?'<span style="color:var(--gd)">(เจ้าของร้าน)</span>':(storeLabel?`<span style="color:var(--txm)">· ${storeLabel}</span>`:'')}`;
   }
   // ซ่อน/แสดงคอลัมน์และการ์ดที่เกี่ยวกับต้นทุน-กำไรตาม role
   document.body.classList.toggle('staff-mode', !isOwner());
@@ -932,9 +941,14 @@ function setSS(s){
 async function loadAll(){
   setSS('sync');
   try{
+    // กรองรายการขายตามขอบเขตตั้งแต่ระดับ query (channel='Antier') — ข้อมูลที่ไม่เกี่ยวข้องจะไม่ถูกส่งมาที่เบราว์เซอร์เลย
+    let sellsQuery = sb.from('sells').select('*');
+    if(myStoreScope()==='antier'){
+      sellsQuery = sellsQuery.eq('channel', 'Antier');
+    }
     const [ri,rs,rc] = await Promise.all([
       sb.from('items').select('*'),
-      sb.from('sells').select('*'),
+      sellsQuery,
       sb.from('customers').select('*')
     ]);
     if(ri.error) throw ri.error;
@@ -1224,16 +1238,16 @@ function renderDB(){
   const rev=periodSells.reduce((a,s)=>a+Number(s.price||0),0),cost=periodSells.reduce((a,s)=>a+Number(s.cost||0),0),gp=rev-cost;
   const avgMonthly = getAvgMonthlyProfit(6);
   document.getElementById('db-c').innerHTML=`
-    <div class="sc cost-only" style="border-color:var(--gd)"><div class="sl">💰 กำไร${dbPeriod!=='all'?'ช่วงนี้':'สุทธิ'}</div><div class="sv ${gp>=0?'sg':'sr'}" style="font-size:32px">฿${fmt(gp)}</div><div class="ss">${rev>0?'Margin '+(gp/rev*100).toFixed(1)+'%':''}</div></div>
-    <div class="sc"><div class="sl">ยอดขาย${dbPeriod!=='all'?'ช่วงนี้':'รวม'}</div><div class="sv">฿${fmt(rev)}</div></div>
-    <div class="sc cost-only"><div class="sl">เฉลี่ยกำไร/เดือน</div><div class="sv">฿${fmt(avgMonthly.avgProfit)}</div><div class="ss">${avgMonthly.monthsWithData} เดือนล่าสุด</div></div>
+    <div class="sc owner-only" style="border-color:var(--gd)"><div class="sl">💰 กำไร${dbPeriod!=='all'?'ช่วงนี้':'สุทธิ'}</div><div class="sv ${gp>=0?'sg':'sr'}" style="font-size:32px">฿${fmt(gp)}</div><div class="ss">${rev>0?'Margin '+(gp/rev*100).toFixed(1)+'%':''}</div></div>
+    <div class="sc owner-only"><div class="sl">ยอดขาย${dbPeriod!=='all'?'ช่วงนี้':'รวม'}</div><div class="sv">฿${fmt(rev)}</div></div>
+    <div class="sc owner-only"><div class="sl">เฉลี่ยกำไร/เดือน</div><div class="sv">฿${fmt(avgMonthly.avgProfit)}</div><div class="ss">${avgMonthly.monthsWithData} เดือนล่าสุด</div></div>
     <div class="sc"><div class="sl">สินค้าคงเหลือ</div><div class="sv">${av.length}</div><div class="ss cost-only">ทุน ฿${fmt(av.reduce((a,i)=>a+Number(i.cost||0),0))}</div></div>
     <div class="sc"><div class="sl">จองอยู่</div><div class="sv" style="color:#9b72cf">${res.length}</div><div class="ss">รายการ</div></div>
     <div class="sc"><div class="sl">ขายแล้ว${dbPeriod!=='all'?' (ช่วงนี้)':''}</div><div class="sv">${periodSells.length}</div><div class="ss">รายการ</div></div>`;
   renderMoM();
   renderChart();
   renderRankings(periodSells);
-  const chs=['Luxsy','Openchat','Whosale','Live Boom','IG','หน้าร้าน','ออกบูธ','FB','Tiktok','Lemon8'];
+  const chs=['Luxsy','Openchat','Whosale','Live Boom','IG','หน้าร้าน','ออกบูธ','FB','Tiktok','Lemon8','Antier'];
   const ownerCh = isOwner();
   document.getElementById('db-ch').innerHTML=chs.map(ch=>{
     const cs=periodSells.filter(s=>s.channel===ch);if(!cs.length)return'';
@@ -1343,6 +1357,7 @@ function renderChart(){
   const isDark=document.documentElement.getAttribute('data-theme')==='dark';
   const gridColor=isDark?'rgba(255,255,255,.06)':'rgba(0,0,0,.07)';
   const labelColor=isDark?'#7a7670':'#888070';
+  const owner = isOwner();
   const now=new Date();
   const months=[];const labels=[];
   for(let i=11;i>=0;i--){
@@ -1350,9 +1365,10 @@ function renderChart(){
     months.push({y:d.getFullYear(),m:d.getMonth()});
     labels.push(`${d.getMonth()+1}/${String(d.getFullYear()).slice(2)}`);
   }
+  if(salesChart)salesChart.destroy();
+  if(!owner){ return; } // พนักงานไม่เห็นกราฟยอดขาย/กำไรเลย (การ์ดครอบไว้ด้วย owner-only)
   const rev=months.map(({y,m})=>sells.filter(s=>{if(!s.sellDate)return false;const d=new Date(s.sellDate);return d.getFullYear()===y&&d.getMonth()===m;}).reduce((a,s)=>a+Number(s.price||0),0));
   const gp=months.map(({y,m})=>sells.filter(s=>{if(!s.sellDate)return false;const d=new Date(s.sellDate);return d.getFullYear()===y&&d.getMonth()===m;}).reduce((a,s)=>a+Number(s.price||0)-Number(s.cost||0),0));
-  if(salesChart)salesChart.destroy();
   salesChart=new Chart(canvas,{type:'bar',data:{labels,datasets:[
     {label:'ยอดขาย',data:rev,backgroundColor:'rgba(201,168,76,.25)',borderColor:'#c9a84c',borderWidth:2,borderRadius:5},
     {label:'กำไร',data:gp,backgroundColor:'rgba(82,192,122,.2)',borderColor:'#52c07a',borderWidth:2,borderRadius:5,type:'line',fill:false,tension:.4,pointRadius:3}
@@ -1697,6 +1713,8 @@ function openSell(id){
   document.getElementById('sl-eid').value = id || '';
   document.getElementById('sell-ttl').textContent = editing ? 'แก้ไขรายการขาย' : 'บันทึกขายออก';
   document.getElementById('sl-item').disabled = editing;
+  const chSel = document.getElementById('sl-ch');
+  chSel.disabled = (myStoreScope()==='antier');
   if(editing && existingSell){
     document.getElementById('sl-item').value = existingSell.itemId || '';
     document.getElementById('sl-price').value = existingSell.price || '';
@@ -1709,6 +1727,7 @@ function openSell(id){
   } else {
     document.getElementById('sl-date').value=today();document.getElementById('sl-paid').value=today();
     ['sl-price','sl-cost','sl-note'].forEach(fid=>document.getElementById(fid).value='');
+    if(myStoreScope()==='antier') document.getElementById('sl-ch').value='Antier';
   }
   document.getElementById('ov-sell').classList.add('open');
 }
@@ -1756,11 +1775,11 @@ function renderSell(){
   document.getElementById('ct-sell').textContent=f.length+' รายการ';
   if(!f.length){document.getElementById('t-sell').innerHTML=`<div class="empty"><div class="ei">💳</div><p>${q?'ไม่พบรายการที่ค้นหา':'ยังไม่มีรายการขาย'}</p></div>`;return;}
   const s=[...f].sort((a,b)=>Number(b.createdAt)-Number(a.createdAt));
-  document.getElementById('t-sell').innerHTML=`<table><thead><tr><th>วันที่ขาย</th><th>โค้ด</th><th>Brand</th><th>สินค้า</th><th>ช่องทาง</th><th>ลูกค้า</th><th>ราคาขาย</th><th class="cost-only">ต้นทุน</th><th class="cost-only">กำไร</th><th>รับเงิน</th><th></th></tr></thead><tbody>${s.map(sl=>{const p=Number(sl.price||0)-Number(sl.cost||0);return`<tr>
+  document.getElementById('t-sell').innerHTML=`<table><thead><tr><th>วันที่ขาย</th><th>โค้ด</th><th>Brand</th><th>สินค้า</th><th>ช่องทาง</th><th>ลูกค้า</th><th>ราคาขาย</th><th class="cost-only">ต้นทุน</th><th class="cost-only">กำไร</th><th>รับเงิน</th><th></th></tr></thead><tbody>${s.map(sl=>{const p=Number(sl.price||0)-Number(sl.cost||0);const isAntier=sl.channel==='Antier';return`<tr>
     <td style="font-size:13px">${sl.sellDate||'-'}</td>
     <td><span style="font-family:monospace;font-size:12px;color:var(--gd)">${sl.itemCode||'-'}</span></td>
     <td>${chip(sl.itemBrand)}</td><td>${sl.itemName||'-'}</td>
-    <td><span class="badge" style="background:var(--sf3);color:var(--txs)">${sl.channel||'-'}</span></td>
+    <td><span class="badge" style="background:${isAntier?'rgba(155,114,207,.15)':'var(--sf3)'};color:${isAntier?'#9b72cf':'var(--txs)'}">${sl.channel||'-'}</span></td>
     <td>${sl.customerName||'-'}</td><td>฿${fmt(sl.price)}</td><td class="cost-only">฿${fmt(sl.cost)}</td>
     <td class="cost-only ${p>=0?'sg':'sr'}">฿${fmt(p)}</td>
     <td style="font-size:12px;color:var(--txm)">${sl.paidDate||'-'}</td>
